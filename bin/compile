@@ -24,7 +24,7 @@ download() {
     fi
 
     if [ -e $CACHE_DIR/$ARCHIVE ]; then
-        header "Loading $ARCHIVE from cache"
+        header "Loading $ARCHIVE from cache ($CACHE_DIR/$ARCHIVE)"
     else
         header "Downloading $ARCHIVE..."
         curl -sSL "http://www.haproxy.org/download/${HAPROXY_MAJOR}/src/haproxy-${HAPROXY_VERSION}.tar.gz" -o $CACHE_DIR/$ARCHIVE
@@ -61,6 +61,9 @@ compile() {
             all \
             install-bin
         info "Done"
+
+        header "Install binary in app dir..."
+        cp $CACHE_DIR/$ARCHIVE_DIR/haproxy $BUILD_DIR/haproxy
     fi
 }
 

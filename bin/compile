@@ -1,0 +1,74 @@
+#!/bin/bash
+# bin/compile <build-dir> <cache-dir>
+
+set -o errexit    # always exit on error
+set -o pipefail   # don't ignore exit codes when piping output
+
+BUILD_DIR=$1
+CACHE_DIR=$2
+BP_DIR=$(cd $(dirname ${0:-}); cd ..; pwd)
+
+source $BP_DIR/lib/output.sh
+
+HAPROXY_MAJOR=1.7
+HAPROXY_VERSION=1.7.8
+HAPROXY_CHECKSUM=7e94653cc5a1dba006bbe43736f53595
+
+ARCHIVE=haproxy-${HAPROXY_VERSION}.tar.gz
+ARCHIVE_DIR=haproxy-${HAPROXY_VERSION}
+
+download() {
+    if [ ! -d $CACHE_DIR ]; then
+        header "Creating $CACHE_DIR"
+        mkdir $CACHE_DIR
+    fi
+
+    if [ -e $CACHE_DIR/$ARCHIVE ]; then
+        header "Loading $ARCHIVE from cache"
+    else
+        header "Downloading $ARCHIVE..."
+        curl -sSL "http://www.haproxy.org/download/${HAPROXY_MAJOR}/src/haproxy-${HAPROXY_VERSION}.tar.gz" -o $CACHE_DIR/$ARCHIVE
+        info "Done"
+
+        header "Verifying md5..."
+        if ! (echo "${HAPROXY_CHECKSUM} ${CACHE_DIR}/${ARCHIVE}" | md5sum -c --quiet); then
+            error "Failed to verify authenticity of ${ARCHIVE} (should be ${HAPROXY_CHECKSUM})"
+            rm $CACHE_DIR/$ARCHIVE
+            exit 1
+        fi
+        info "Done"
+    fi
+}
+
+unpack() {
+    if [ ! -d $CACHE_DIR/$ARCHIVE_DIR ]; then
+        header "Unpacking $ARCHIVE to $CACHE_DIR/$ARCHIVE"
+        mkdir -p "$CACHE_DIR/$ARCHIVE_DIR"
+        tar -xzf "${CACHE_DIR}/${ARCHIVE}" -C "${CACHE_DIR}/${ARCHIVE_DIR}" --strip-components=1
+        info "Done"
+    fi
+}
+
+compile() {
+    if [ ! -f $CACHE_DIR/$ARCHIVE_DIR/haproxy ]; then
+        header "Compiling $ARCHIVE_DIR..."
+        cd $CACHE_DIR/$ARCHIVE_DIR
+        make TARGET=linux2628\
+            USE_PCRE=1 PCREDIR= \
+            USE_OPENSSL=1 \
+            USE_ZLIB=1 \
+            PREFIX=$BUILD_DIR \
+            all \
+            install-bin
+        info "Done"
+    fi
+}
+
+download
+unpack
+compile
+
+info "Done"
+
+exit 0
+

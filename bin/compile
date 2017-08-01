@@ -61,15 +61,19 @@ compile() {
             all \
             install-bin
         info "Done"
-
-        header "Install binary in app dir..."
-        cp $CACHE_DIR/$ARCHIVE_DIR/haproxy $BUILD_DIR/haproxy
     fi
+}
+
+copy_binary() {
+    header "Install binary in app dir..."
+    cp $CACHE_DIR/$ARCHIVE_DIR/haproxy $BUILD_DIR/haproxy
+    info "Done"
 }
 
 download
 unpack
 compile
+copy_binary
 
 info "Done"
 
